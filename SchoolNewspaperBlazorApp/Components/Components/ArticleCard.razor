@@ -40,7 +40,7 @@
     public async Task RemoveArticleByIdAsync(int id)
     {
         await articleService.RemoveArticleByIdAsync(id);
-        var article = Articles.FirstOrDefault(a => a.Id == id);
+        Article? article = Articles.FirstOrDefault(a => a.Id == id);
         if(article != null)
         {
         Articles.Remove(article);
