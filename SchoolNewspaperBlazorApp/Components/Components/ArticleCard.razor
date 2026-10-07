@@ -8,6 +8,12 @@
             <h5 class="card-title">@article.Title</h5>
             <p class="card-text">@article.Text</p>
             <p class="card-author">@article.Author</p>
+            @if(permissions == true)
+                {
+                <select>
+                <option>Usuń artykuł</option>
+                </select>
+                }
         </div>
     </div>
     </NavLink>
@@ -16,4 +22,6 @@
 @code {
     [Parameter]
     public List<Article> Articles { get; set; } = new();
+    [Parameter]
+    public bool permissions { get; set; }
 }

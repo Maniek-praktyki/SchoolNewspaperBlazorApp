@@ -6,21 +6,47 @@
 @using SchoolNewspaperBlazorApp.Interfaces.Service
 
 <div class="main-block">
-    <h1>Dodaj artykul</h1>
-    <form @onsubmit="AddArticle" @onsubmit:preventDefault>
-        <input @bind="title" class="form-control"/>
-        <textarea @bind="text" class="form-control"/>
-        <input @bind="author" class="form-control"/>
-        <button type="submit" class="btn btn-primary">Dodaj</button>
-    </form>
+    @if(view == 1)
+    {
+        <div class="article-panel">
+            <ArticleCard Articles="articleList"/>
+        </div>
+    }
+    else if(view == 2)
+    {
+        <div class="add-article-form">
+            <h1>Dodaj artykul</h1>
+            <form @onsubmit="AddArticle" @onsubmit:preventDefault>
+                Guzik dzieki któremu możemy dodac zdjecie
+                <input @bind="title" class="form-control" />
+                <textarea @bind="text" class="form-control" />
+                <input @bind="author" class="form-control" />
+                <button type="submit" class="btn btn-primary">Dodaj</button>
+            </form>
+        </div>
+    }
+    <button class="btn btn-primary" @onclick="LoadArticleAsync">Panel artykulow</button>
+    <button class="btn btn-primary" @onclick=" () => SetView(2)">Dodaj artykul</button>
 </div>
+
 
 @code {
     private string title = "";
     private string text = "";
     private string author = "";
+    public int view = 0;
+    public List<Article> articleList = new List<Article>();
     private async Task AddArticle()
     {
         await articleService.AddArticleAsync(title, text, author);
+    }
+    public void SetView(int view)
+    {
+        this.view = view;
+    }
+    public async Task LoadArticleAsync()
+    {
+        articleList = await articleService.GetAllArticlesAsync();
+        SetView(1);
     }
 }
