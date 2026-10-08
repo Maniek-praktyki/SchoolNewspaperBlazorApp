@@ -1,0 +1,59 @@
+﻿@using SchoolNewspaperBlazorApp.Data
+@using SchoolNewspaperBlazorApp.Interfaces.Service
+@using Microsoft.AspNetCore.Components.Forms
+
+@inject IArticleService articleService
+@inject IFileService fileService
+
+<div class="add-article-form">
+    <h1>Dodaj artykul</h1>
+
+    @if (!string.IsNullOrEmpty(previewImage))
+    {
+        <div class="preview-image">
+            <img src="@previewImage" alt="zdjecie" />
+        </div>
+    }
+
+    <InputFile OnChange="ChoosePhoto" accept="image/*" />
+
+    <form @onsubmit="AddArticle" @onsubmit:preventDefault>
+        <input @bind="Title" class="form-control" placeholder="Tytuł" />
+
+        <textarea @bind="Text" class="form-control" placeholder="Treść"></textarea>
+
+        <input @bind="Author" class="form-control" placeholder="Autor" />
+
+        <button type="submit" class="btn btn-primary">
+            Dodaj
+        </button>
+    </form>
+</div>
+
+@code {
+    public string Title { get; set; } = "";
+    public string Text { get; set; } = "";
+    public string Author { get; set; } = "";
+
+    private string? previewImage;
+
+    // Przechowujemy tutaj wybrane zdjęcie
+    private IBrowserFile? file;
+
+    private async Task ChoosePhoto(InputFileChangeEventArgs e)
+    {
+        file = e.File;
+
+        previewImage = await fileService.GetPreviewAsync(file);
+    }
+
+    private async Task AddArticle()
+    {
+        int id = 0;
+        if (file != null)
+        {
+            await fileService.UploadImage(file);
+        }
+        await articleService.AddArticleAsync(Title, Text, Author, id);
+    }
+}   
