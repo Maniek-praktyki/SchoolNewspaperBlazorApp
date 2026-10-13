@@ -1,10 +1,21 @@
-﻿<h3>Dodaj Uzytkownika</h3>
-<form @onsubmit:preventDefault>
-    <input @bind="Login" class="form-control" />
-    <input @bind="Password" class="form-control" />
-    <input @bind="Email" class="form-control" />
-    <button type="submit" class="btn btn-primary">Dodaj</button>
-</form>
+<div class="panel">
+    <h2>Dodaj użytkownika</h2>
+    <form @onsubmit:preventDefault>
+        <div class="field">
+            <label for="new-login">Login</label>
+            <input id="new-login" @bind="Login" class="form-control" autocomplete="off" />
+        </div>
+        <div class="field">
+            <label for="new-password">Hasło</label>
+            <input id="new-password" type="password" @bind="Password" class="form-control" autocomplete="new-password" />
+        </div>
+        <div class="field">
+            <label for="new-email">E-mail</label>
+            <input id="new-email" type="email" @bind="Email" class="form-control" autocomplete="off" />
+        </div>
+        <button type="submit" class="btn btn-primary">Dodaj</button>
+    </form>
+</div>
 @code {
     public required string Login { get; set; }
     public required string Password { get; set; }

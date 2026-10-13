@@ -1,9 +1,26 @@
-﻿@page "/adminPanel"
+@page "/adminPanel"
 @rendermode InteractiveServer
 @inject IArticleService articleService
 @using SchoolNewspaperBlazorApp.Components.Components
 @using SchoolNewspaperBlazorApp.Data
 @using SchoolNewspaperBlazorApp.Interfaces.Service
+
+<PageTitle>Panel administratora</PageTitle>
+
+<h1 class="admin-heading">Panel administratora</h1>
+
+<div class="admin-toolbar">
+    @if (view == 0)
+    {
+        <button class="btn btn-primary" @onclick="LoadArticleAsync">Panel artykułów</button>
+        <button class="btn btn-primary" @onclick=" () => SetView(2)">Dodaj artykuł</button>
+        <button class="btn btn-primary" @onclick=" () => SetView(3)">+ Dodaj użytkownika</button>
+    }
+    else
+    {
+        <button class="btn btn-ghost" @onclick=" () => SetView(0)">Wróć</button>
+    }
+</div>
 
 <div class="main-block">
     @if (view == 1)
@@ -14,21 +31,11 @@
     }
     else if (view == 2)
     {
-       <ArticleForm/>
+        <ArticleForm />
     }
     else if (view == 3)
     {
-        <AddUserForm/>
-    }   
-    @if (view == 0)
-    {
-        <button class="btn btn-primary" @onclick="LoadArticleAsync">Panel artykulow</button>
-        <button class="btn btn-primary" @onclick=" () => SetView(2)">Dodaj artykul</button>
-        <button class="btn btn-primary" @onclick=" () => SetView(3)">+ Dodaj Uzytkownika</button>
-    }
-    else
-    {
-        <button class="btn btn-primary" @onclick=" () => SetView(0)">Wróc</button>
+        <AddUserForm />
     }
 </div>
 

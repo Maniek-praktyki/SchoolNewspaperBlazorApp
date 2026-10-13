@@ -1,21 +1,36 @@
-﻿@using SchoolNewspaperBlazorApp.Data
+@using SchoolNewspaperBlazorApp.Data
 @using SchoolNewspaperBlazorApp.Interfaces.Service
 @inject IArticleService articleService
 @inject IFileService fileService
 
-<div class="add-article-form">
+<div class="add-article-form panel">
     <h2 class="add-article-title">Dodaj artykuł</h2>
+
     @if(previewImage != null)
     {
         <div class="preview-image">
-            <img src="@previewImage" alt="zdjecie" />
+            <img src="@previewImage" alt="Podgląd zdjęcia" />
         </div>
     }
-    <InputFile onchange="ChoosePhoto" accept="image/*" />
+
+    <div class="field">
+        <label for="photo">Zdjęcie</label>
+        <InputFile id="photo" class="form-control" OnChange="ChoosePhoto" accept="image/*" />
+    </div>
+
     <form @onsubmit="AddArticle" @onsubmit:preventDefault>
-        <input @bind="Title" class="form-control"  
-        <input @bind="Text" class="form-control" />
-        <input @bind="Author" class="form-control" />
+        <div class="field">
+            <label for="title">Tytuł</label>
+            <input id="title" @bind="Title" class="form-control" />
+        </div>
+        <div class="field">
+            <label for="text">Treść</label>
+            <textarea id="text" @bind="Text" class="form-control" rows="8"></textarea>
+        </div>
+        <div class="field">
+            <label for="author">Autor</label>
+            <input id="author" @bind="Author" class="form-control" />
+        </div>
         <button type="submit" class="btn btn-primary">Dodaj</button>
     </form>
 </div>

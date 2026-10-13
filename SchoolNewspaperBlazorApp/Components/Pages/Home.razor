@@ -1,11 +1,21 @@
-﻿@page "/"
+@page "/"
 @using SchoolNewspaperBlazorApp.Components.Components
 @using SchoolNewspaperBlazorApp.Data
 @using SchoolNewspaperBlazorApp.Interfaces.Service
 @inject IArticleService articleService;
 
-<ArticleCard Articles="articles" permissions="false"/>
+<PageTitle>Aktualności</PageTitle>
 
+<h1 class="page-title">Aktualności</h1>
+
+@if (articles.Count == 0)
+{
+    <p class="empty-state">Nie ma jeszcze żadnych artykułów.</p>
+}
+else
+{
+    <ArticleCard Articles="articles" permissions="false" />
+}
 
 @code 
 {

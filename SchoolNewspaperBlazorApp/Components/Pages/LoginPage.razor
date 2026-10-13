@@ -1,16 +1,27 @@
-﻿@page "/login"
+@page "/login"
 @using SchoolNewspaperBlazorApp.Interfaces.Service
 
 
 @inject IAuthService authService;
 
-<h3>LoginPage</h3>
-<form @onsubmit:preventDefault>
-    <input @bind="Login" class="form-control"
-    <input @bind="Password" class="form-control" />
-    <button type="submit" class="btn btn-primary">Dodaj</button>
-</form>
+<PageTitle>Logowanie</PageTitle>
+
+<section class="panel auth-card">
+    <h1>Logowanie</h1>
+    <form @onsubmit:preventDefault>
+        <div class="field">
+            <label for="login">Login</label>
+            <input id="login" @bind="Login" class="form-control" autocomplete="username" />
+        </div>
+        <div class="field">
+            <label for="password">Hasło</label>
+            <input id="password" type="password" @bind="Password" class="form-control" autocomplete="current-password" />
+        </div>
+        <button type="submit" class="btn btn-primary">Zaloguj</button>
+    </form>
+</section>
+
 @code {
-    public string Login { get; set; }
-    public string Password { get; set; }
+    public string Login { get; set; } = "";
+    public string Password { get; set; } = "";
 }
