@@ -1,55 +1,37 @@
-@inherits LayoutComponentBase
+﻿@inherits LayoutComponentBase
 
-<input type="checkbox" id="menu-toggle" class="menu-toggle" aria-label="Menu" />
+<nav class="navbar navbar-expand-lg bg-dark navbar-dark shadow">
+    <div class="container">
 
-<header class="site-header">
-    <label for="menu-toggle" class="menu-button">
-        <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
-            <path d="M3 7h24M3 15h24M3 23h24" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" />
-        </svg>
-        <span class="visually-hidden">Otwórz menu</span>
-    </label>
+        <a class="navbar-brand fw-bold fs-4" href="/">
+       
+        </a>
 
-    <a class="site-title" href="/">Elitarne Technikum Informatyczne im. Tadeusza Kościuszki</a>
+        <div class="navbar-nav ms-4">
+            <img src="logo.jpg"/>
+            <a class="nav-link active" href="/">Strona główna</a>
+            <a class="nav-link" href="/aktualnosci">Aktualności</a>
+            <a class="nav-link" href="/wydarzenia">Wydarzenia</a>
+            <a class="nav-link" href="/login">Panel logowania</a>
+            <a class="nav-link" href="/adminPanel">Admin Panel</a>
+        </div>
 
-    <a class="site-logo" href="/">
-        <img src="img/logo-eti.png" alt="Logo szkoły" />
-    </a>
-</header>
+        <form class="d-flex ms-auto" role="search">
+            <input class="form-control me-2"
+                   type="search"
+                   placeholder="Szukaj..."
+                   aria-label="Szukaj" />
 
-<label for="menu-toggle" class="drawer-backdrop" aria-hidden="true"></label>
+            <button class="btn" type="submit">
+                Szukaj
+            </button>
+        </form>
 
-<aside class="drawer" aria-label="Menu główne">
-    <div class="drawer-head">
-        <span class="drawer-brand">Gazetka szkolna</span>
-        <label for="menu-toggle" class="drawer-close">
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
-                <path d="M4 4l14 14M18 4L4 18" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" />
-            </svg>
-            <span class="visually-hidden">Zamknij menu</span>
-        </label>
     </div>
+</nav>
 
-    <form class="drawer-search" role="search">
-        <input class="form-control"
-               type="search"
-               placeholder="Szukaj..."
-               aria-label="Szukaj" />
-        <button class="btn btn-primary" type="submit">Szukaj</button>
-    </form>
-
-    <nav class="drawer-nav">
-        <NavLink href="" Match="NavLinkMatch.All">Strona główna</NavLink>
-        <NavLink href="aktualnosci">Aktualności</NavLink>
-        <NavLink href="wydarzenia">Wydarzenia</NavLink>
-
-        <div class="drawer-divider"></div>
-
-        <NavLink href="login">Panel logowania</NavLink>
-        <NavLink href="adminPanel">Admin Panel</NavLink>
-    </nav>
-</aside>
-
-<main class="site-main">
+<main class="container py-4">
     @Body
 </main>
+
+

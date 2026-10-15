@@ -1,18 +1,13 @@
-@page "/article/{Id:int}"
+﻿@page "/article/{Id:int}"
 
 @using SchoolNewspaperBlazorApp.Data
 @using SchoolNewspaperBlazorApp.Interfaces.Service
 
 @if (article != null)
 {
-    <PageTitle>@article.Title</PageTitle>
-
-    <article class="article-page">
-        <a class="back-link" href="/">&larr; Aktualności</a>
-        <h1>@article.Title</h1>
-        <p class="article-byline">Autor: @article.Author</p>
-        <div class="article-body">@article.Text</div>
-    </article>
+    <h1>@article.Title</h1>
+    <p>@article.Text</p>
+    <p>Autor: @article.Author</p>
 }
 
 @code {
