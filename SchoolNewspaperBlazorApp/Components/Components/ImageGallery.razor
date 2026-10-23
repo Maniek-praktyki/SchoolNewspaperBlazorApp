@@ -1,0 +1,121 @@
+﻿@using Microsoft.AspNetCore.Components.Forms
+@using SchoolNewspaperBlazorApp.Data
+@using SchoolNewspaperBlazorApp.Interfaces.Service
+@inject IFileService FileService
+
+<div class="image-gallery">
+    @if (!ReadOnly)
+    {
+        <InputFile OnChange="HandleFilesSelected"
+                   multiple
+                   accept=".jpg,.jpeg,.png,.gif,.webp"
+                   class="form-control mb-2" />
+
+        @if (uploading)
+        {
+            <p class="text-muted small mb-2">Wgrywanie zdjęć...</p>
+        }
+    }
+
+    <div class="gallery-grid @(ReadOnly ? "readonly" : "")">
+        @foreach (var item in Items)
+        {
+            <div class="gallery-item">
+                <img src="@item.PreviewSrc"
+                     alt="@item.Name"
+                     title="Kliknij, aby powiększyć"
+                     @onclick="() => OpenLightbox(item)" />
+
+                @if (!ReadOnly)
+                {
+                    <button type="button"
+                            class="gallery-remove"
+                            title="Usuń zdjęcie"
+                            @onclick="() => RemoveItem(item)">×</button>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@if (zoomed is not null)
+{
+    <div class="gallery-lightbox" @onclick="CloseLightbox" title="Kliknij, aby zamknąć">
+        <img src="@zoomed.PreviewSrc" alt="@zoomed.Name" />
+    </div>
+}
+
+@code {
+    [Parameter] public List<GalleryImage> Items { get; set; } = new();
+    [Parameter] public EventCallback<List<GalleryImage>> ItemsChanged { get; set; }
+
+    // null dla nowego artykułu, id artykułu przy edycji
+    [Parameter] public int? ArticleId { get; set; }
+
+    // Tryb podglądu dla czytelnika: bez wgrywania i bez usuwania
+    [Parameter] public bool ReadOnly { get; set; }
+
+    private GalleryImage? zoomed;
+    private bool uploading;
+
+    private async Task HandleFilesSelected(InputFileChangeEventArgs e)
+    {
+        uploading = true;
+        try
+        {
+            // Limit liczby plików w jednym wyborze; reszta zostanie pominięta
+            foreach (var file in e.GetMultipleFiles(maximumFileCount: 10))
+            {
+                int id = await FileService.UploadImage(file, ArticleId);
+                if (id == 0)
+                {
+                    continue;
+                }
+
+                string preview = await FileService.GetPreviewAsync(file);
+                Items.Add(new GalleryImage
+                {
+                    FileId = id,
+                    Name = file.Name,
+                    PreviewSrc = preview
+                });
+            }
+
+            await ItemsChanged.InvokeAsync(Items);
+        }
+        finally
+        {
+            uploading = false;
+        }
+    }
+
+    private async Task RemoveItem(GalleryImage item)
+    {
+        if (item.FileId is int id && id > 0)
+        {
+            bool deleted = await FileService.DeleteImageAsync(id);
+            if (!deleted)
+            {
+                return;
+            }
+        }
+
+        Items.Remove(item);
+        if (zoomed == item)
+        {
+            zoomed = null;
+        }
+
+        await ItemsChanged.InvokeAsync(Items);
+    }
+
+    private void OpenLightbox(GalleryImage item)
+    {
+        zoomed = item;
+    }
+
+    private void CloseLightbox()
+    {
+        zoomed = null;
+    }
+}

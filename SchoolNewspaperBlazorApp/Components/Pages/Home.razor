@@ -1,0 +1,102 @@
+﻿@page "/"
+@using SchoolNewspaperBlazorApp.Components.Components
+@using SchoolNewspaperBlazorApp.Data
+@using SchoolNewspaperBlazorApp.Data.Enums
+@using SchoolNewspaperBlazorApp.Interfaces.Service
+
+@inject IArticleService articleService
+
+<PageTitle>Gazetka ETI</PageTitle>
+
+<section class="home-hero">
+    <span class="home-hero__eyebrow">
+        Szkolny portal informacyjny
+    </span>
+
+    <h1>Wszystko, co dzieje się w naszej szkole.</h1>
+
+    <p>
+        Aktualności, wydarzenia i ogłoszenia z życia technikum – w jednym miejscu,
+        tworzone przez uczniów.
+    </p>
+
+    <a href="#aktualnosci" class="home-hero__button">
+        Czytaj aktualności <span aria-hidden="true">→</span>
+    </a>
+</section>
+
+<div class="section-heading" id="aktualnosci">
+    <div>
+        <h2>Najnowsze artykuły</h2>
+        <p>Świeże wiadomości od redakcji gazetki.</p>
+    </div>
+</div>
+
+<div class="home-category-tabs">
+    <button type="button"
+            class="@GetTabClass(null)"
+            @onclick="() => SelectCategory(null)">
+        Wszystkie
+    </button>
+
+    @foreach (var type in Enum.GetValues<ArticleType>())
+    {
+        var currentType = type;
+
+        <button type="button"
+                class="@GetTabClass(currentType)"
+                @onclick="() => SelectCategory(currentType)">
+            @ArticleTypeInfo.Label(currentType)
+        </button>
+    }
+</div>
+
+@if (!FilteredArticles.Any())
+{
+    <p class="home-no-articles">
+        Brak artykułów w wybranej kategorii.
+    </p>
+}
+else
+{
+    <ArticleCard Articles="FilteredArticles.ToList()"
+                 Permissions="false" />
+}
+
+@code {
+    private List<Article> articles = new();
+
+    private ArticleType? selectedCategory = null;
+
+    private IEnumerable<Article> FilteredArticles
+    {
+        get
+        {
+            if (selectedCategory == null)
+            {
+                return articles;
+            }
+
+            return articles.Where(
+                article => article.Category == selectedCategory.Value
+            );
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        articles = await articleService.GetAllArticlesAsync();
+    }
+
+    private void SelectCategory(ArticleType? category)
+    {
+        selectedCategory = category;
+    }
+
+    private string GetTabClass(ArticleType? category)
+    {
+        return selectedCategory == category
+            ? "home-category-tab active"
+            : "home-category-tab";
+    }
+}

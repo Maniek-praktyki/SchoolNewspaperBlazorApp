@@ -1,0 +1,434 @@
+﻿@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.JSInterop
+@using System.Globalization
+@using SchoolNewspaperBlazorApp.Data
+@using SchoolNewspaperBlazorApp.Data.Enums
+@using SchoolNewspaperBlazorApp.Interfaces.Service
+@using SchoolNewspaperBlazorApp.Components.Components
+
+@inject IArticleService articleService
+@inject IFileService fileService
+@inject INotificationService notificationService
+@inject IJSRuntime JS
+
+<div class="add-article-form">
+    <h1 class="add-article-form__title">
+        @(IsEdit ? "Edytuj artykuł" : "Dodaj artykuł")
+    </h1>
+
+    @if (previewImage != null)
+    {
+        <div class="image-preview-wrap">
+            <img src="@previewImage"
+                 alt="Zdjęcie główne"
+                 class="image-preview" />
+        </div>
+    }
+
+    <form @onsubmit="SubmitForm" @onsubmit:preventDefault>
+
+        <label class="form-label">Zdjęcie główne *</label>
+
+        <InputFile id="main-photo-input"
+                   OnChange="ChoosePhoto"
+                   accept="image/*"
+                   class="form-control mb-3" />
+
+        <label class="form-label">Tytuł *</label>
+
+        <input @bind="title"
+               class="form-control mb-3"
+               placeholder="Wpisz tytuł..."
+               required />
+
+        <label class="form-label">Treść *</label>
+
+        <textarea @bind="text"
+                  class="form-control mb-3"
+                  rows="6"
+                  placeholder="Treść artykułu..."
+                  required>
+        </textarea>
+
+        <label class="form-label">Autor *</label>
+
+        <input @bind="author"
+               class="form-control mb-3"
+               placeholder="Imię i nazwisko"
+               required />
+
+        <label class="form-label">Typ artykułu *</label>
+
+        <select @bind="category"
+                class="form-select mb-2"
+                required>
+            <option value="">-- Wybierz typ --</option>
+
+            @foreach (var type in Enum.GetValues<ArticleType>())
+            {
+                <option value="@type">@ArticleTypeInfo.Label(type)</option>
+            }
+        </select>
+
+        @if (categoryError)
+        {
+            <div class="category-validation-error">
+                Wybierz typ artykułu przed zapisaniem.
+            </div>
+        }
+
+        @if (category != null)
+        {
+            var rules = ArticleTypeInfo.Fields(category.Value);
+
+            @foreach (var rule in rules)
+            {
+                <label class="form-label mt-2">
+                    @rule.Label@(rule.Required ? " *" : "")
+                </label>
+
+                @if (rule.Field == ArticleField.AdditionalInfo)
+                {
+                    <textarea class="form-control mb-3"
+                              rows="3"
+                              required="@rule.Required"
+                              @bind:get="GetRaw(rule.Field)"
+                              @bind:set="v => SetRaw(rule.Field, v)"
+                              @bind:event="oninput"></textarea>
+                }
+                else if (rule.Field is ArticleField.Date or ArticleField.EndDate
+                                     or ArticleField.StartTime or ArticleField.EndTime)
+                {
+                    <input type="@InputTypeOf(rule.Field)"
+                           class="form-control mb-3"
+                           required="@rule.Required"
+                           @bind:get="GetRaw(rule.Field)"
+                           @bind:set="v => SetRaw(rule.Field, v)"
+                           @bind:event="onchange" />
+                }
+                else
+                {
+                    <input type="@InputTypeOf(rule.Field)"
+                           class="form-control mb-3"
+                           required="@rule.Required"
+                           @bind:get="GetRaw(rule.Field)"
+                           @bind:set="v => SetRaw(rule.Field, v)"
+                           @bind:event="oninput" />
+                }   
+            }
+        }
+
+        <label class="form-label mt-3">
+            Galeria zdjęć
+        </label>
+
+        <ImageGallery @key="formVersion"
+                      @bind-Items="galleryItems"
+                      ArticleId="@GalleryArticleId" />
+
+        <button type="submit"
+                class="btn btn-primary w-100 mt-3">
+            @(IsEdit ? "Zatwierdź edycję" : "Dodaj artykuł")
+        </button>
+    </form>
+</div>
+
+@code {
+    [Parameter]
+    public bool IsEdit { get; set; }
+
+    [Parameter]
+    public Article? Article { get; set; }
+
+    private string title = "";
+    private string text = "";
+    private string author = "";
+
+    private ArticleType? category = null;
+    private bool categoryError = false;
+
+    private string? previewImage;
+    private IBrowserFile? file;
+
+    // Zdjęcia galerii: przy edycji wczytane z bazy, przy dodawaniu wgrywane na bieżąco
+    private List<GalleryImage> galleryItems = new();
+
+    private int? loadedArticleId;
+
+    // Zmiana tej wartości odtwarza komponent galerii, czyszcząc jego pola
+    private int formVersion = 0;
+
+    // Wartości pól dodatkowych w postaci tekstowej (data yyyy-MM-dd, godzina HH:mm)
+    private readonly Dictionary<ArticleField, string> rawFields = new();
+
+    // Przy dodawaniu zdjęcia są najpierw wgrywane bez artykułu, a przypisywane po zapisie
+    private int? GalleryArticleId => IsEdit ? Article?.Id : null;
+
+    private string GetRaw(ArticleField field) =>
+        rawFields.TryGetValue(field, out var value) ? value : "";
+
+    private void SetRaw(ArticleField field, string? value) =>
+        rawFields[field] = value ?? "";
+
+    private static string InputTypeOf(ArticleField field) => field switch
+    {
+        ArticleField.Date or ArticleField.EndDate => "date",
+        ArticleField.StartTime or ArticleField.EndTime => "time",
+        _ => "text"
+    };
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsEdit && Article != null)
+        {
+            title = Article.Title;
+            text = Article.Text;
+            author = Article.Author;
+            category = Article.Category;
+
+            if (loadedArticleId != Article.Id)
+            {
+                loadedArticleId = Article.Id;
+                LoadRawFields(Article.Details);
+                galleryItems = await LoadGalleryAsync(Article.Id);
+            }
+        }
+        else if (!IsEdit)
+        {
+            title = "";
+            text = "";
+            author = "";
+
+            category = null;
+            categoryError = false;
+
+            file = null;
+            previewImage = null;
+            rawFields.Clear();
+
+            loadedArticleId = null;
+        }
+    }
+
+    private void LoadRawFields(ArticleDetails? details)
+    {
+        rawFields.Clear();
+
+        if (details == null)
+        {
+            return;
+        }
+
+        rawFields[ArticleField.Date] = details.Date?.ToString("yyyy-MM-dd") ?? "";
+        rawFields[ArticleField.EndDate] = details.EndDate?.ToString("yyyy-MM-dd") ?? "";
+        rawFields[ArticleField.StartTime] = details.StartTime?.ToString(@"hh\:mm") ?? "";
+        rawFields[ArticleField.EndTime] = details.EndTime?.ToString(@"hh\:mm") ?? "";
+        rawFields[ArticleField.Name] = details.Name ?? "";
+        rawFields[ArticleField.ClassName] = details.ClassName ?? "";
+        rawFields[ArticleField.TeacherName] = details.TeacherName ?? "";
+        rawFields[ArticleField.Location] = details.Location ?? "";
+        rawFields[ArticleField.AdditionalInfo] = details.AdditionalInfo ?? "";
+    }
+
+    // Buduje dane dodatkowe tylko z pól widocznych dla wybranego typu
+    private ArticleDetails? BuildDetails(ArticleType type)
+    {
+        var rules = ArticleTypeInfo.Fields(type);
+
+        if (rules.Count == 0)
+        {
+            return null;
+        }
+
+        var details = new ArticleDetails();
+
+        foreach (var rule in rules)
+        {
+            string value = GetRaw(rule.Field).Trim();
+
+            switch (rule.Field)
+            {
+                case ArticleField.Date:
+                    details.Date = ParseDate(value);
+                    break;
+                case ArticleField.EndDate:
+                    details.EndDate = ParseDate(value);
+                    break;
+                case ArticleField.StartTime:
+                    details.StartTime = ParseTime(value);
+                    break;
+                case ArticleField.EndTime:
+                    details.EndTime = ParseTime(value);
+                    break;
+                case ArticleField.Name:
+                    details.Name = NullIfEmpty(value);
+                    break;
+                case ArticleField.ClassName:
+                    details.ClassName = NullIfEmpty(value);
+                    break;
+                case ArticleField.TeacherName:
+                    details.TeacherName = NullIfEmpty(value);
+                    break;
+                case ArticleField.Location:
+                    details.Location = NullIfEmpty(value);
+                    break;
+                case ArticleField.AdditionalInfo:
+                    details.AdditionalInfo = NullIfEmpty(value);
+                    break;
+            }
+        }
+
+        return details;
+    }
+
+    private static DateTime? ParseDate(string value)
+    {
+        if (DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+        {
+            return date;
+        }
+
+        return null;
+    }
+
+    private static TimeSpan? ParseTime(string value)
+    {
+        if (TimeSpan.TryParse(value, CultureInfo.InvariantCulture, out var time))
+        {
+            return time;
+        }
+
+        return null;
+    }
+
+    private static string? NullIfEmpty(string value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value;
+
+    private async Task<List<GalleryImage>> LoadGalleryAsync(int articleId)
+    {
+        var files = await fileService.GetFilesByArticleIdAsync(articleId);
+
+        return files
+            .Select(f => new GalleryImage
+            {
+                FileId = f.Id,
+                Name = f.FileName,
+                PreviewSrc = $"/Images/{f.FileName}"
+            })
+            .ToList();
+    }
+
+    private async Task SubmitForm()
+    {
+        // Typ jest obowiązkowy.
+        if (category == null || !Enum.IsDefined(category.Value))
+        {
+            categoryError = true;
+
+            notificationService.Show(
+                "Wybierz typ artykułu!",
+                EnumNotificationType.Failure);
+
+            return;
+        }
+
+        categoryError = false;
+
+        // Walidacja pól dodatkowych przed wgraniem zdjęcia, żeby nie zostawiać osieroconych plików
+        var details = BuildDetails(category.Value);
+        string? detailsError = ArticleTypeInfo.Validate(category.Value, details);
+
+        if (detailsError != null)
+        {
+            notificationService.Show(detailsError, EnumNotificationType.Failure);
+            return;
+        }
+
+        // Zdjęcie główne jest obowiązkowe przy tworzeniu artykułu.
+        if (!IsEdit && file == null)
+        {
+            notificationService.Show(
+                "Artykuł musi zawierać zdjęcie główne!",
+                EnumNotificationType.Failure);
+
+            return;
+        }
+
+        int mainImageId = Article?.MainImageId ?? 0;
+
+        if (file != null)
+        {
+            mainImageId = await fileService.UploadImage(file);
+        }
+
+        if (IsEdit && Article != null)
+        {
+            // Zdjęcia galerii są już przypisane do artykułu w momencie wgrania
+            await articleService.UpdateArticleByIdAsync(
+                Article.Id,
+                title,
+                text,
+                author,
+                mainImageId,
+                category.Value,
+                details);
+
+            return;
+        }
+
+        int articleId = await articleService.AddArticleAsync(
+            title,
+            text,
+            author,
+            mainImageId,
+            category.Value,
+            details);
+
+        // Jeśli dodawanie się nie powiodło, formularz zostaje wypełniony
+        if (articleId <= 0)
+        {
+            return;
+        }
+
+        // Dopiero teraz znamy ID artykułu, więc podpinamy wgrane zdjęcia galerii
+        var pendingIds = galleryItems
+            .Where(i => i.FileId is > 0)
+            .Select(i => i.FileId!.Value)
+            .ToList();
+
+        if (pendingIds.Count > 0)
+        {
+            await fileService.AttachImagesToArticleAsync(pendingIds, articleId);
+        }
+
+        await ClearFormAsync();
+    }
+
+    private async Task ClearFormAsync()
+    {
+        title = "";
+        text = "";
+        author = "";
+
+        category = null;
+        categoryError = false;
+
+        file = null;
+        previewImage = null;
+        rawFields.Clear();
+
+        galleryItems = new();
+        formVersion++;
+
+        // Zerujemy wartość pola wyboru zdjęcia głównego, żeby nie pokazywało starej nazwy pliku
+        await JS.InvokeVoidAsync(
+            "eval",
+            "var el = document.getElementById('main-photo-input'); if (el) el.value = '';");
+    }
+
+    private async Task ChoosePhoto(InputFileChangeEventArgs e)
+    {
+        file = e.File;
+        previewImage = await fileService.GetPreviewAsync(file);
+    }
+}

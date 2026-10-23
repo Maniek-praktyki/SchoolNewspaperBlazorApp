@@ -1,0 +1,85 @@
+﻿@page "/article/{Id:int}"
+@using SchoolNewspaperBlazorApp.Data
+@using SchoolNewspaperBlazorApp.Data.Enums
+@using SchoolNewspaperBlazorApp.Interfaces.Service
+@using SchoolNewspaperBlazorApp.Components.Components
+
+@inject IArticleService articleService
+@inject IFileService fileService
+
+@if (article != null)
+{
+    <article class="article-page">
+
+        @if (!string.IsNullOrEmpty(imageUrl))
+        {
+            <div class="article-page__img-wrap">
+                <img src="@imageUrl" alt="@article.Title" class="article-page__img" />
+            </div>
+        }
+
+        <span class="article-page__type">@ArticleTypeInfo.Label(article.Category)</span>
+
+        <h1 class="article-page__title">@article.Title</h1>
+
+        <div class="article-page__content">
+            @article.Text
+        </div>
+
+        @if (article.Details != null)
+        {
+            <dl class="article-details">
+                @foreach (var rule in ArticleTypeInfo.Fields(article.Category))
+                {
+                    var value = ArticleTypeInfo.FormatValue(rule.Field, article.Details);
+
+                    if (!string.IsNullOrWhiteSpace(value))
+                    {
+                        <div class="article-details__row">
+                            <dt>@rule.Label</dt>
+                            <dd>@value</dd>
+                        </div>
+                    }
+                }
+            </dl>
+        }
+
+        <div class="article-page__meta">
+            <span class="article-page__author">@article.Author</span>
+        </div>
+
+        @if (galleryItems.Count > 0)
+        {
+            <h3 class="gallery-title">Galeria zdjęć</h3>
+
+            <ImageGallery Items="galleryItems" ReadOnly="true" />
+        }
+    </article>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private Article? article;
+    private string? imageUrl;
+    private List<GalleryImage> galleryItems = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        article = await articleService.GetArticleByIdAsync(Id);
+
+        var fileName = await fileService.GetFileNameByIdAsync(article.MainImageId);
+        imageUrl = string.IsNullOrWhiteSpace(fileName) ? null : $"/Images/{fileName}";
+
+        var files = await fileService.GetFilesByArticleIdAsync(Id);
+        galleryItems = files
+            .Select(f => new GalleryImage
+            {
+                FileId = f.Id,
+                Name = f.FileName,
+                PreviewSrc = $"/Images/{f.FileName}"
+            })
+            .ToList();
+    }
+}
